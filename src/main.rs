@@ -15,9 +15,9 @@ use bevy::{
     winit::{WakeUp, WinitPlugin},
 };
 use bevy_vulkano::VulkanoPlugin;
-use procedural_macros::render_system;
+use procedural_macros::{nothing, vulkano_module};
 use vulkano::{
-    buffer::BufferContents,
+    buffer::{allocator::SubbufferAllocator, BufferContents},
     command_buffer::{AutoCommandBufferBuilder, PrimaryAutoCommandBuffer},
     pipeline::graphics::vertex_input::Vertex,
 };
@@ -95,58 +95,56 @@ mod render_system_runner {
     // }
 }
 
-mod render_system_test {
-    use bevy::prelude::*;
-    use vulkano::command_buffer::{AutoCommandBufferBuilder, PrimaryAutoCommandBuffer};
-
+mod blah_expanded {
     use super::MyVertex;
-    use vulkano::buffer::allocator::SubbufferAllocator;
+    use bevy::prelude::*;
+    use vulkano::{buffer::{allocator::SubbufferAllocator, Subbuffer}, DeviceSize};
 
+    #[derive(Resource)]
     pub struct RenderData {
         pub vertices: Vec<MyVertex>,
     }
-    impl bevy::ecs::system::Resource for RenderData where Self: Send + Sync + 'static {}
 
-    pub struct NonSendRenderData {
-        subbuffer_allocator: SubbufferAllocator,
-    }
+    pub fn main(subbuffer_allocator: NonSend<SubbufferAllocator>, render_data: Res<RenderData>) {
+        subbuffer_allocator.reserve(render_data.vertices.len() as DeviceSize).unwrap();
 
-    pub fn render(
-        command_buffer: NonSendMut<AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>>,
-        render_data: ResMut<RenderData>,
-        non_send_render_data: NonSendMut<NonSendRenderData>,
-    ) {
-        let command_buffer = command_buffer.into_inner();
-
-        let vertices = non_send_render_data
-            .subbuffer_allocator
+        // For all often buffers we should store this stuff in a hashmap somehow.
+        let render_data_vertices_buffer = 
+            subbuffer_allocator
             .allocate_slice(render_data.vertices.len().try_into().unwrap())
             .unwrap();
-        vertices
+        render_data_vertices_buffer
             .write()
             .unwrap()
             .clone_from_slice(&render_data.vertices);
     }
 }
 
-struct ExternalTest {
+struct ExternalTest {}
 
-}
-
-render_system!(
+nothing!(
     blah
 
     Data external_test {
         External,
-    }
+    },
 
     Data render_data {
         Resource,
-        
-        Vertices Often MyVertex
+
+        Vertices Often vertices MyVertex,
     },
 
     System main {
         Vertices render_data.vertices,
     },
 );
+
+nothing!{
+    ugh
+
+    System main {
+        Pipeline render_data.pipeline,
+        Vertices render_data.vertices,
+    }
+}

@@ -11,3 +11,6 @@ syn = "2.0.77"
 quote = "1.0.37"
 proc-macro2 = "1.0.86"
 ahash = "0.8.11"
+heck = "0.5.0"
+derive_more = { version = "1", features = ["deref", "deref_mut"] }
+smart-default = "0.7.1"

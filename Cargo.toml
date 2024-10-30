@@ -1,7 +1,7 @@
 cargo-features = ["codegen-backend"]
 
 [package]
-name = "bevy_template"
+name = "a-bevy-in-the-hand-is-worth-two-in-the-vulkano"
 version = "0.1.0"
 edition = "2021"
 
